@@ -9,12 +9,14 @@ const Register = () => {
     password: '',
     confirmPassword: '',
     role: 'donor',
-    bloodType: ''
+    bloodType: '',
+    phone: '',
+    location: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
-  const { register } = useAuth();
+  const { signup } = useAuth();
   const navigate = useNavigate();
 
   const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -42,13 +44,11 @@ const Register = () => {
 
     setLoading(true);
 
-    const { confirmPassword, ...registrationData } = formData;
-    const result = await register(registrationData);
+    const { confirmPassword: _confirmPassword, ...registrationData } = formData;
+    const result = await signup(registrationData);
     
     if (result.success) {
-      navigate('/login', { 
-        state: { message: 'Registration successful! Please login.' }
-      });
+      navigate('/dashboard');
     } else {
       setError(result.error);
     }
@@ -152,6 +152,38 @@ const Register = () => {
                 </select>
               </div>
             )}
+            
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                Phone Number
+              </label>
+              <input
+                id="phone"
+                name="phone"
+                type="tel"
+                required
+                value={formData.phone}
+                onChange={handleChange}
+                className="mt-1 input-field"
+                placeholder="Enter your phone number"
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="location" className="block text-sm font-medium text-gray-700">
+                Location
+              </label>
+              <input
+                id="location"
+                name="location"
+                type="text"
+                required
+                value={formData.location}
+                onChange={handleChange}
+                className="mt-1 input-field"
+                placeholder="Enter your city/location"
+              />
+            </div>
             
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">

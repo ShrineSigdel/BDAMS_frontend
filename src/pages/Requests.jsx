@@ -1,42 +1,65 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { requestAPI } from '../utils/api';
+import { apiService } from '../utils/api';
 
 const Requests = () => {
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('');
-
-  const isDonor = user?.role === 'donor';
-  const isRecipient = user?.role === 'recipient';
+  const [userProfile, setUserProfile] = useState(null);
 
   useEffect(() => {
-    fetchRequests();
-  }, [filter]);
+    const fetchUserProfile = async () => {
+      if (currentUser) {
+        try {
+          const profile = await apiService.getProfile();
+          setUserProfile(profile);
+        } catch (error) {
+          console.error('Error fetching profile:', error);
+        }
+      }
+    };
+    
+    fetchUserProfile();
+  }, [currentUser]);
 
-  const fetchRequests = async () => {
+  const isDonor = userProfile?.role === 'donor';
+  const isRecipient = userProfile?.role === 'recipient';
+
+  const fetchRequests = useCallback(async () => {
     try {
       setLoading(true);
-      const params = {};
+      const response = await apiService.getBloodRequests();
+      let filteredRequests = response;
+      
+      // Apply blood type filter if set
       if (filter) {
-        params.bloodType = filter;
+        filteredRequests = response.filter(req => req.bloodType === filter);
       }
       
-      const response = await requestAPI.getRequests(params);
-      setRequests(response.data);
+      setRequests(filteredRequests);
     } catch (error) {
       setError('Failed to fetch requests');
       console.error('Error fetching requests:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter]);
+
+  useEffect(() => {
+    if (userProfile) {
+      fetchRequests();
+    }
+  }, [fetchRequests, userProfile]);
 
   const handleRespond = async (requestId) => {
     try {
-      await requestAPI.respondToRequest(requestId);
+      await apiService.respondToBloodRequest(requestId, {
+        donorId: currentUser.uid,
+        message: 'I would like to help with this blood donation request.'
+      });
       fetchRequests(); // Refresh the list
     } catch (error) {
       setError('Failed to respond to request');
@@ -46,7 +69,10 @@ const Requests = () => {
 
   const handleComplete = async (requestId) => {
     try {
-      await requestAPI.completeRequest(requestId);
+      await apiService.completeDonation(requestId, {
+        donorId: currentUser.uid,
+        completedAt: new Date().toISOString()
+      });
       fetchRequests(); // Refresh the list
     } catch (error) {
       setError('Failed to complete request');

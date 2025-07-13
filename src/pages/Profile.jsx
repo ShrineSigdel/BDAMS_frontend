@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { authAPI } from '../utils/api';
+import { apiService } from '../utils/api';
 
 const Profile = () => {
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -23,7 +23,7 @@ const Profile = () => {
 
   const fetchProfile = async () => {
     try {
-      const response = await authAPI.getProfile();
+      const response = await apiService.getProfile();
       setProfile(response.data);
       setFormData({
         name: response.data.name || '',
@@ -50,7 +50,7 @@ const Profile = () => {
     setSuccess('');
 
     try {
-      await authAPI.updateProfile(formData);
+      await apiService.updateProfile(formData);
       setSuccess('Profile updated successfully');
       setEditing(false);
       fetchProfile();

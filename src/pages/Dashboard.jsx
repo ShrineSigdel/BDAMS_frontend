@@ -1,19 +1,49 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { apiService } from '../utils/api';
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
+  const [userProfile, setUserProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const isDonor = user?.role === 'donor';
-  const isRecipient = user?.role === 'recipient';
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (currentUser) {
+        try {
+          const profile = await apiService.getProfile();
+          setUserProfile(profile);
+        } catch (error) {
+          console.error('Error fetching profile:', error);
+        }
+      }
+      setLoading(false);
+    };
+
+    fetchProfile();
+  }, [currentUser]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const isDonor = userProfile?.role === 'donor';
+  const isRecipient = userProfile?.role === 'recipient';
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
-            Welcome, {user?.name || 'User'}!
+            Welcome, {userProfile?.name || 'User'}!
           </h1>
           <p className="text-gray-600 mt-2">
             {isDonor && 'Thank you for being a blood donor. Your donations save lives!'}
@@ -27,23 +57,23 @@ const Dashboard = () => {
             <div className="flex items-center mb-4">
               <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
                 <span className="text-red-600 font-bold text-lg">
-                  {user?.name?.charAt(0) || 'U'}
+                  {userProfile?.name?.charAt(0) || 'U'}
                 </span>
               </div>
               <div className="ml-4">
                 <h3 className="text-lg font-semibold text-gray-900">Profile</h3>
-                <p className="text-sm text-gray-600 capitalize">{user?.role}</p>
+                <p className="text-sm text-gray-600 capitalize">{userProfile?.role}</p>
               </div>
             </div>
             <div className="space-y-2 mb-4">
               <div className="flex justify-between">
                 <span className="text-sm text-gray-600">Email:</span>
-                <span className="text-sm font-medium">{user?.email}</span>
+                <span className="text-sm font-medium">{userProfile?.email}</span>
               </div>
-              {isDonor && user?.bloodType && (
+              {isDonor && userProfile?.bloodType && (
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Blood Type:</span>
-                  <span className="text-sm font-medium text-red-600">{user.bloodType}</span>
+                  <span className="text-sm font-medium text-red-600">{userProfile.bloodType}</span>
                 </div>
               )}
             </div>

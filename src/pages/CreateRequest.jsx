@@ -1,20 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { requestAPI } from '../utils/api';
+import { apiService } from '../utils/api';
 
 const CreateRequest = () => {
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const [userProfile, setUserProfile] = useState(null);
   const [formData, setFormData] = useState({
     bloodType: '',
     location: '',
-    urgency: 'medium'
+    urgency: 'medium',
+    description: '',
+    hospitalName: '',
+    contactPhone: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (currentUser) {
+        try {
+          const profile = await apiService.getProfile();
+          setUserProfile(profile);
+        } catch (error) {
+          console.error('Error fetching profile:', error);
+        }
+      }
+    };
+    
+    fetchUserProfile();
+  }, [currentUser]);
 
   const handleChange = (e) => {
     setFormData({
@@ -29,7 +48,10 @@ const CreateRequest = () => {
     setLoading(true);
 
     try {
-      await requestAPI.createRequest(formData);
+      await apiService.postBloodRequest({
+        ...formData,
+        recipientId: currentUser.uid
+      });
       navigate('/requests', { 
         state: { message: 'Blood request created successfully!' }
       });
@@ -41,7 +63,7 @@ const CreateRequest = () => {
   };
 
   // Redirect if user is not a recipient
-  if (user?.role !== 'recipient') {
+  if (userProfile && userProfile.role !== 'recipient') {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
