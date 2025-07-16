@@ -9,12 +9,6 @@ const MyRequests = () => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const { userProfile } = useAuth();
 
-  useEffect(() => {
-    if (userProfile?.role) {
-      fetchMyRequests();
-    }
-  }, [userProfile?.role, fetchMyRequests]);
-
   const fetchMyRequests = useCallback(async () => {
     try {
       console.log('Fetching requests for user role:', userProfile?.role);
@@ -34,6 +28,12 @@ const MyRequests = () => {
       setLoading(false);
     }
   }, [userProfile?.role]);
+
+  useEffect(() => {
+    if (userProfile?.role) {
+      fetchMyRequests();
+    }
+  }, [userProfile?.role, fetchMyRequests]);
 
   const handleCancelRequest = async (requestId) => {
     if (window.confirm('Are you sure you want to cancel this request?')) {

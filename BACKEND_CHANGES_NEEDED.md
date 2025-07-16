@@ -120,12 +120,9 @@ const completeDonation = async (req, res) => {
 
     // Can only complete pending_confirmation requests
     if (requestData.status !== "pending_confirmation") {
-      return res
-        .status(400)
-        .send({
-          message:
-            "Request must be in pending_confirmation status to complete.",
-        });
+      return res.status(400).send({
+        message: "Request must be in pending_confirmation status to complete.",
+      });
     }
 
     await requestRef.update({
