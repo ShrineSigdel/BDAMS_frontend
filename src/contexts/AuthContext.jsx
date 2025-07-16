@@ -1,71 +1,106 @@
-import React, { useContext, useState, useEffect } from 'react';
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { auth } from '../config/firebase';
+import { 
+  signInWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged 
 } from 'firebase/auth';
-import { auth } from '../firebase';
-import { apiService } from '../utils/api';
+import ApiService from '../services/api';
 
-const AuthContext = React.createContext();
+const AuthContext = createContext();
 
-export function useAuth() {
-  return useContext(AuthContext);
-}
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
 
-export function AuthProvider({ children }) {
+export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Login function
-  async function login({ email, password }) {
+  // Register function - only calls backend
+  const signup = async (email, password, name, role, bloodType) => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      return { success: true };
-    } catch (error) {
-      console.error('Login error:', error);
-      return { 
-        success: false, 
-        error: error.message || 'Failed to log in. Please check your credentials.' 
-      };
-    }
-  }
-
-  // Signup function
-  async function signup({ email, password, name, role, bloodType, phone, location }) {
-    try {
-      // Create user with Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      
-      // Register user profile in backend
-      await apiService.registerUser({
-        uid: userCredential.user.uid,
+      // Only call backend API - it will handle Firebase Auth creation
+      const response = await ApiService.registerUser({
         email,
+        password,
         name,
         role,
-        bloodType,
-        phone,
-        location
+        bloodType
       });
       
-      return { success: true };
+      // After successful registration, sign in the user
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      return userCredential;
     } catch (error) {
       console.error('Signup error:', error);
-      return { 
-        success: false, 
-        error: error.message || 'Failed to create an account.' 
-      };
+      throw error;
     }
-  }
+  };
 
-  function logout() {
-    return signOut(auth);
-  }
+  // Sign in function
+  const signin = async (email, password) => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      return userCredential;
+    } catch (error) {
+      console.error('Signin error:', error);
+      throw error;
+    }
+  };
 
+  // Sign out function
+  const logout = async () => {
+    try {
+      await signOut(auth);
+      setUserProfile(null); // Clear profile on logout
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw error;
+    }
+  };
+
+  // Get user profile from backend
+  const getUserProfile = async () => {
+    try {
+      console.log('Fetching user profile...');
+      const response = await ApiService.getProfile();
+      console.log('Profile response:', response);
+      
+      // Handle both wrapped and unwrapped responses
+      const profileData = response.data || response;
+      setUserProfile(profileData);
+      return profileData;
+    } catch (error) {
+      console.error('Get profile error:', error);
+      console.error('Error response:', error.response?.data);
+      throw error;
+    }
+  };
+
+  // Auth state listener
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
+      
+      if (user) {
+        // User is signed in, fetch their profile
+        try {
+          await getUserProfile();
+        } catch (error) {
+          console.error('Failed to fetch user profile:', error);
+          // Don't throw error here as it would break the app
+        }
+      } else {
+        // User is signed out, clear profile
+        setUserProfile(null);
+      }
+      
       setLoading(false);
     });
 
@@ -74,9 +109,12 @@ export function AuthProvider({ children }) {
 
   const value = {
     currentUser,
-    login,
+    userProfile,
     signup,
-    logout
+    signin,
+    logout,
+    getUserProfile,
+    loading
   };
 
   return (
@@ -84,4 +122,4 @@ export function AuthProvider({ children }) {
       {!loading && children}
     </AuthContext.Provider>
   );
-}
+};

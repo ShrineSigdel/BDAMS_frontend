@@ -1,15 +1,14 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Navbar from './components/Navbar';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Profile from './pages/Profile';
-import Dashboard from './pages/Dashboard';
-import Requests from './pages/Requests';
-import CreateRequest from './pages/CreateRequest';
-import PrivateRoute from './components/PrivateRoute';
+import Login from './components/Login';
+import Register from './components/Register';
+import Dashboard from './components/Dashboard';
+import CreateRequest from './components/CreateRequest';
+import BloodRequests from './components/BloodRequests';
+import MyRequests from './components/MyRequests';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -18,13 +17,29 @@ function App() {
         <div className="min-h-screen bg-gray-50">
           <Navbar />
           <Routes>
-            <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-            <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-            <Route path="/requests" element={<PrivateRoute><Requests /></PrivateRoute>} />
-            <Route path="/create-request" element={<PrivateRoute><CreateRequest /></PrivateRoute>} />
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/create-request" element={
+              <ProtectedRoute>
+                <CreateRequest />
+              </ProtectedRoute>
+            } />
+            <Route path="/blood-requests" element={
+              <ProtectedRoute>
+                <BloodRequests />
+              </ProtectedRoute>
+            } />
+            <Route path="/my-requests" element={
+              <ProtectedRoute>
+                <MyRequests />
+              </ProtectedRoute>
+            } />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>
       </Router>
